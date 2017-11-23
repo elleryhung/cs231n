@@ -25,8 +25,8 @@ def affine_forward(x, w, b):
     # TODO: Implement the affine forward pass. Store the result in out. You   #
     # will need to reshape the input into rows.                               #
     ###########################################################################
-    x = np.reshape(x, (np.shape(x)[0],-1))
-    out = np.dot(x, w) + b
+    x_out = np.reshape(x, (np.shape(x)[0],-1))
+    out = np.dot(x_out, w) + b
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -50,11 +50,14 @@ def affine_backward(dout, cache):
     - db: Gradient with respect to b, of shape (M,)
     """
     x, w, b = cache
+    N = np.shape(x)[0]
     dx, dw, db = None, None, None
     ###########################################################################
     # TODO: Implement the affine backward pass.                               #
     ###########################################################################
-    pass
+    dw = np.dot(np.reshape(x,(N, -1)).T, dout)
+    dx = np.reshape(np.dot(dout, w.T), np.shape(x))
+    db = np.sum(dout, axis=0)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
