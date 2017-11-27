@@ -81,13 +81,14 @@ class TwoLayerNet(object):
         W2 = self.params['W2']
         b2 = self.params['b2']
         N = np.shape(X)[0]
+        X = np.reshape(X, (np.shape(X)[0],-1))
         ############################################################################
         # TODO: Implement the forward pass for the two-layer net, computing the    #
         # class scores for X and storing them in the scores variable.              #
         ############################################################################
         h1 = np.dot(X, W1) + b1
-        h1 = np.maximum(h1, 0)
-        scores = np.dot(h1, W2) + b2
+        h1_relu = np.maximum(h1, 0)
+        scores = np.dot(h1_relu, W2) + b2
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -114,6 +115,19 @@ class TwoLayerNet(object):
         data_loss = np.sum(-np.log(correct_prob)) / N
         reg_loss = 0.5 * self.reg * (np.sum(W1*W1) + np.sum(W2*W2))
         loss = data_loss + reg_loss
+        
+        delta_soft = soft_scores
+        delta_soft[range(N), y] -= 1
+        dw2 = np.dot(h1_relu.T, delta_soft)/N + self.reg * W2
+        db2 = np.sum(delta_soft, axis=0)/N
+        dx2 = np.dot(delta_soft, W2.T)
+        dx2[h1_relu < 0] = 0
+        dw1 = np.dot(X.T, dx2)/N + self.reg * W1
+        db1 = np.sum(dx2, axis=0)/N
+        grads['W2'] = dw2
+        grads['b2'] = db2
+        grads['W1'] = dw1
+        grads['b1'] = db1
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -179,7 +193,14 @@ class FullyConnectedNet(object):
         # beta2, etc. Scale parameters should be initialized to one and shift      #
         # parameters should be initialized to zero.                                #
         ############################################################################
-        pass
+        for i, dim in enumerate(hidden_dims):
+            if
+            w = 'W' + str(i)
+            b = 'b' + str(i)
+            self.params[w] = weight_scale * np.random.randn(input_dim, hidden_dims)
+            self.params[b] = np.zeros(hidden_dims)
+        self.params['W2'] = weight_scale * np.random.randn(hidden_dims, num_classes)
+        self.params['b2'] = np.zeros(num_classes)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
