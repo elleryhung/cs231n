@@ -194,13 +194,21 @@ class FullyConnectedNet(object):
         # parameters should be initialized to zero.                                #
         ############################################################################
         for i, dim in enumerate(hidden_dims):
-            if
-            w = 'W' + str(i)
-            b = 'b' + str(i)
-            self.params[w] = weight_scale * np.random.randn(input_dim, hidden_dims)
-            self.params[b] = np.zeros(hidden_dims)
-        self.params['W2'] = weight_scale * np.random.randn(hidden_dims, num_classes)
-        self.params['b2'] = np.zeros(num_classes)
+            if i == 0:
+                pre_layer_dim = input_dim
+            else:
+                pre_layer_dim = hidden_dims[i-1]
+            
+            next_layer_dim = hidden_dims[i]
+            w = 'W' + str(i+1)
+            b = 'b' + str(i+1)
+            self.params[w] = weight_scale * np.random.randn(pre_layer_dim, next_layer_dim)
+            self.params[b] = np.zeros(next_layer_dim)
+            if i == len(hidden_dims)-1:  # the last hidden layer
+                w = 'W' + str(i+2)
+                b = 'b' + str(i+2)
+                self.params[w] = weight_scale * np.random.randn(next_layer_dim, num_classes)
+                self.params[b] = np.zeros(num_classes)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -258,7 +266,23 @@ class FullyConnectedNet(object):
         # self.bn_params[1] to the forward pass for the second batch normalization #
         # layer, etc.                                                              #
         ############################################################################
-        pass
+        cache = list(range(self.num_layers))
+        dp_cache = list(range(self.num_layers - 1))
+        hidden_out = list(range(self.num_layers + 1))
+        hidden_out[0] = X
+        for i in range(self.num_layers):
+            W = self.params['W'+str(i+1)]
+            b = self.params['b'+str(i+1)]
+            if i == self.num_layers - 1:
+                hidden_out[i+1], cache[i] = affine_forward(hidden_out[i], W, b)
+            else:
+                if self.use_batchnorm:
+                    pass
+                else:
+                    hidden_out[i+1], cache[i] = affine_relu_forward(hidden_out[i], W, b)
+                if self.use_dropout:
+                    hidden_out[i+1], dp_cache[i] = dropout_forward(hidden_out[i+1], self.dropout_param)
+        scores = hidden_out[self.num_layers]
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -281,7 +305,21 @@ class FullyConnectedNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        pass
+        loss, dscores = softmax_loss(scores, y)
+        dhidden = list(range(self.num_layers + 1)) 
+        dhidden[self.num_layers] = dscores
+        for i in range(self.num_layers, 0, -1):
+            if i == self.num_layers:
+                dhidden[i-1], grads['W'+str(i)], grads['b'+str(i)] = affine_backward(dhidden[i], cache[i-1])
+            else:
+                if self.use_dropout:
+                    dhidden[i] = dropout_backward(dhidden[i], dp_cache[i-1])
+                if self.use_batchnorm:
+                    pass
+                else:
+                    dhidden[i-1], grads['W'+str(i)], grads['b'+str(i)] = affine_relu_backward(dhidden[i], cache[i-1])
+            loss += 0.5 * self.reg * np.sum(self.params['W' + str(i)] ** 2)
+            grads['W' + str(i)] += self.reg * self.params['W' + str(i)]
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
