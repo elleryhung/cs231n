@@ -204,6 +204,9 @@ class FullyConnectedNet(object):
             b = 'b' + str(i+1)
             self.params[w] = weight_scale * np.random.randn(pre_layer_dim, next_layer_dim)
             self.params[b] = np.zeros(next_layer_dim)
+            if self.use_batchnorm:
+                self.params['gamma' + str(i+1)] = np.ones(next_layer_dim)
+                self.params['beta' + str(i+1)] = np.zeros(next_layer_dim)
             if i == len(hidden_dims)-1:  # the last hidden layer
                 w = 'W' + str(i+2)
                 b = 'b' + str(i+2)
@@ -277,7 +280,9 @@ class FullyConnectedNet(object):
                 hidden_out[i+1], cache[i] = affine_forward(hidden_out[i], W, b)
             else:
                 if self.use_batchnorm:
-                    pass
+                    gamma = self.params['gamma'+str(i+1)]
+                    beta = self.params['beta'+str(i+1)]
+                    hidden_out[i+1], cache[i] = affine_bn_relu_forward(hidden_out[i], W, b, gamma, beta, self.bn_params[i])
                 else:
                     hidden_out[i+1], cache[i] = affine_relu_forward(hidden_out[i], W, b)
                 if self.use_dropout:
@@ -315,7 +320,9 @@ class FullyConnectedNet(object):
                 if self.use_dropout:
                     dhidden[i] = dropout_backward(dhidden[i], dp_cache[i-1])
                 if self.use_batchnorm:
-                    pass
+                    dx, dw, db, dgamma, dbeta = affine_bn_relu_backward(dhidden[i], cache[i-1])
+                    dhidden[i-1], grads['W'+str(i)], grads['b'+str(i)] = dx, dw, db
+                    grads['gamma'+str(i)], grads['beta'+str(i)] = dgamma, dbeta
                 else:
                     dhidden[i-1], grads['W'+str(i)], grads['b'+str(i)] = affine_relu_backward(dhidden[i], cache[i-1])
             loss += 0.5 * self.reg * np.sum(self.params['W' + str(i)] ** 2)
