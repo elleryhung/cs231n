@@ -48,7 +48,13 @@ class ThreeLayerConvNet(object):
         # hidden affine layer, and keys 'W3' and 'b3' for the weights and biases   #
         # of the output affine layer.                                              #
         ############################################################################
-        pass
+        (C, H, W) = input_dim
+        self.params['W1'] = weight_scale * np.random.randn(num_filters, C, filter_size, filter_size)
+        self.params['b1'] = np.zeros(num_filters) 
+        self.params['W2'] = weight_scale * np.random.randn(int(num_filters*H*W/4), hidden_dim)
+        self.params['b2'] = np.zeros(hidden_dim)
+        self.params['W3'] = weight_scale * np.random.randn(hidden_dim, num_classes)
+        self.params['b3'] = np.zeros(num_classes) 
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -80,7 +86,11 @@ class ThreeLayerConvNet(object):
         # computing the class scores for X and storing them in the scores          #
         # variable.                                                                #
         ############################################################################
-        pass
+        N = X.shape[0]
+        conv_out, conv_cache = conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)
+        arf_out, arf_cache = affine_relu_forward(np.reshape(conv_out, (N, -1)), W2, b2)
+        af_out, af_cache = affine_forward(arf_out, W3, b3)
+        scores = af_out
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -95,7 +105,22 @@ class ThreeLayerConvNet(object):
         # data loss using softmax, and make sure that grads[k] holds the gradients #
         # for self.params[k]. Don't forget to add L2 regularization!               #
         ############################################################################
-        pass
+        loss, dx = softmax_loss(af_out, y)
+        reg_loss = 0.5 * self.reg * (np.sum(W1*W1) + np.sum(W2*W2) + np.sum(W3*W3))
+        loss += reg_loss
+        dx3, dw3, db3 = affine_backward(dx, af_cache)
+        dw3 += self.reg * W3
+        dx2, dw2, db2 = affine_relu_backward(dx3, arf_cache)
+        dw2 += self.reg * W2
+        dx2 = np.reshape(dx2, np.shape(conv_out))
+        dx2, dw1, db1 = conv_relu_pool_backward(dx2, conv_cache)
+        dw1 += self.reg * W1
+        grads['W3'] = dw3
+        grads['b3'] = db3
+        grads['W2'] = dw2
+        grads['b2'] = db2
+        grads['W1'] = dw1
+        grads['b1'] = db1
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
