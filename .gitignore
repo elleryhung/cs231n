@@ -1,0 +1,3 @@
+# Ignore file list here
+/assignment2/cs231n/build/*
+*.so
